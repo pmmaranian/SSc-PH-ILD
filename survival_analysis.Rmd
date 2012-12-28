@@ -55,7 +55,9 @@ data1 <- transform(data1,
                    prednisone = factor(prednisone,levels=1:2,labels=c("Yes","No")),
                    immunesuppression = factor(immunesuppression,levels=1:2,labels=c("Yes","No")),
                    dm = factor(dm,levels=1:2,labels=c("Yes","No")),
-                   htn = factor(htn,levels=1:2,labels=c("Yes","No"))
+                   htn = factor(htn,levels=1:2,labels=c("Yes","No")),
+                   creatinine2 = factor(creatinine>2,levels=c(FALSE,TRUE),labels=c("&le;2",">2")),
+                   hemoglobin2 = factor(hemoglobin<=11,levels=c(FALSE,TRUE),labels=c(">11","&le;11"))
                    )
 
 data1$weeks.in.study <- with(data1,as.numeric((censor_death_date-date_rhc_diagnostic)/7))
@@ -66,8 +68,8 @@ cohort2 <- subset(data1, rhc_mpap>=25 & fvcpct>70)
 surv1 <- with(cohort1,Surv(weeks.in.study,censor))
 surv2 <- with(cohort2,Surv(weeks.in.study,censor))
 
-covariates1 <- subset(cohort1,select=c(age,gender,ethnicity,creatinine,hemoglobin,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression))
-covariates2 <- subset(cohort2,select=c(age,gender,ethnicity,creatinine,hemoglobin,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression))
+covariates1 <- subset(cohort1,select=c(age,gender,ethnicity,creatinine,creatinine2,hemoglobin,hemoglobin2,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression))
+covariates2 <- subset(cohort2,select=c(age,gender,ethnicity,creatinine,creatinine2,hemoglobin,hemoglobin2,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression))
 
 coxPHuniv <- function(varname,cohort,surv) {
   x <- cohort[[pmatch(varname,names(cohort))]]
