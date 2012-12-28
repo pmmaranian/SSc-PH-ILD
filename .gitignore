@@ -1,0 +1,14 @@
+*.Rproj.user
+*.Rhistory
+*.RData
+*.csv
+*.xls
+*.xlsx
+*.doc
+*.docx
+*.Rproj
+*.r
+*.R
+/figure
+log
+
