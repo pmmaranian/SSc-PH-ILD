@@ -119,10 +119,9 @@ Univariate Cox-PH analyses
 <tr> <th></th> <th colspan="6">PH / ILD</th> <th></th> <th colspan="6">PH / No ILD</th> </tr>
 ```{r, results='asis', echo=FALSE, warning=FALSE}
 univariate.tbl1 <- do.call(rbind,lapply(covariate.namesL,coxPHuniv,cohort1,surv1))
-#xunivariate.tbl1 <- xtable(univariate.tbl1)
 colnames(univariate.tbl1)[c(1,2)] <- c("","N")
+
 univariate.tbl2 <- do.call(rbind,lapply(covariate.namesL,coxPHuniv,cohort2,surv2))
-#xunivariate.tbl2 <- xtable(univariate.tbl2[,-1])
 colnames(univariate.tbl2)[c(1,2)] <- c("","N")
 
 xunivariate.tbl <- xtable(cbind(univariate.tbl1,univariate.tbl2))
