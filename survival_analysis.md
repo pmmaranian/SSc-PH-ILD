@@ -12,7 +12,7 @@ Descriptive Table
 <tr> <th> </th> <th colspan="2"> PH / ILD </th> <th colspan="2"> PH / No ILD </th>
 <TR> <TH>  </TH> <TH> Total </TH> <TH> mean (SD) / N (%) </TH> <TH> Total </TH> <TH> mean (SD) / N (%) </TH> </TR>
 <!-- html table generated in R 2.15.1 by xtable 1.7-0 package -->
-<!-- Fri Dec 28 14:31:59 2012 -->
+<!-- Wed Jan 02 19:03:58 2013 -->
   <TR> <TD> <b>age</b> </TD> <TD align="center"> 84 </TD> <TD align="center"> 53.89 (11.75) </TD> <TD align="center"> 47 </TD> <TD align="center"> 59.79 (12.61) </TD> </TR>
   <TR> <TD> <b>gender</b> </TD> <TD align="center"> 84 </TD> <TD align="center">  </TD> <TD align="center"> 47 </TD> <TD align="center">  </TD> </TR>
   <TR> <TD> &#160;&#160;&#160;F </TD> <TD align="center">  </TD> <TD align="center"> 58 (69%) </TD> <TD align="center">  </TD> <TD align="center"> 43 (91.5%) </TD> </TR>
@@ -65,7 +65,7 @@ Descriptive Table
 
 
 Kaplan-Meier estimate with 95% pointwise confidence bounds
---------------------
+---------------------------------------------
 ![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
 
 
@@ -77,7 +77,7 @@ Univariate Cox-PH analyses
 <table>
 <tr> <th></th> <th colspan="6">PH / ILD</th> <th></th> <th colspan="6">PH / No ILD</th> </tr>
 <!-- html table generated in R 2.15.1 by xtable 1.7-0 package -->
-<!-- Fri Dec 28 14:32:00 2012 -->
+<!-- Wed Jan 02 19:03:59 2013 -->
 <TR> <TH>  </TH> <TH> N </TH> <TH> coef </TH> <TH> exp(coef) </TH> <TH> se(coef) </TH> <TH> z </TH> <TH> Pr(>|z|) </TH> <TH>  </TH> <TH> N </TH> <TH> coef </TH> <TH> exp(coef) </TH> <TH> se(coef) </TH> <TH> z </TH> <TH> Pr(>|z|) </TH>  </TR>
   <TR> <TD> <b>age</b> </TD> <TD> 79 </TD> <TD> 0.0051 </TD> <TD> 1.0051 </TD> <TD> 0.0145 </TD> <TD> 0.353 </TD> <TD> 0.7241 </TD> <TD> <b>age</b> </TD> <TD> 46 </TD> <TD> 0.0395 </TD> <TD> 1.0403 </TD> <TD> 0.0204 </TD> <TD> 1.9369 </TD> <TD> 0.0528 </TD> </TR>
   <TR> <TD> <b>gender</b> </TD> <TD> 79 </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> <TD> <b>gender</b> </TD> <TD> 46 </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> <TD>  </TD> </TR>

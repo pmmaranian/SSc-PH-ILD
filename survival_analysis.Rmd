@@ -6,7 +6,7 @@ library(survival)
 library(XLConnect)
 library(gridExtra)
 source("C:/PaulM/R source files/table functions markdown.R")
-options(digits=4)
+
 
 data <- read.csv("SScPHILDProject_ImportTemplate_2012-12-13.csv", fileEncoding="native.enc", stringsAsFactors=FALSE)
 excluded <- readWorksheetFromFile("excluded patients.xlsx",header=F,sheet="Sheet1",startRow=1,startCol=3,endCol=3,endRow=80)
@@ -105,7 +105,7 @@ print(xc1.c2.table,type="html",include.rownames=F,sanitize.text.function=functio
 
 
 Kaplan-Meier estimate with 95% pointwise confidence bounds
---------------------
+---------------------------------------------
 ```{r, fig.width=12, echo=FALSE}
 par(mfrow=c(1,2))
 plot(survfit(surv1~1),xlab="weeks",ylab="survival probability",main="PH / ILD",xlim=c(0,600))
