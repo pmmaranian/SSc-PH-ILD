@@ -16,8 +16,10 @@ data <- data[!data$studyid %in% excluded$studyid,]
 
 rhc.date.indices <- grep("rhc_date",names(data))
 rhc.mpap.indices <- grep("rhc_mpap",names(data))
+rhc.pcwp.indices <- grep("rhc_pcwp",names(data))
+rhc.pvr.indices <- grep("rhc_pvr",names(data))
 
-data.rhc <- data.frame(date_rhc_diagnostic=data$date_rhc_diagnostic,data[c(rhc.date.indices,rhc.mpap.indices)],stringsAsFactors=F)
+data.rhc <- data.frame(date_rhc_diagnostic=data$date_rhc_diagnostic,data[c(rhc.date.indices,rhc.mpap.indices,rhc.pcwp.indices,rhc.pvr.indices)],stringsAsFactors=F)
 rownames(data.rhc) <- data$studyid
 
 find.mpap <- function(row) {
@@ -28,18 +30,20 @@ find.mpap <- function(row) {
   else {
     dates <- row[grep("rhc_date",names(row))]
     mpaps <- row[grep("rhc_mpap",names(row))]
+    pcwps <- row[grep("rhc_pcwp",names(row))]
+    pvrs <- row[grep("rhc_pvr",names(row))]
     index <- grep(date,dates)
     if (length(index)==0) return(NA)
-    else if (length(index)>1) return(mpaps[[index[1]]])
-    else return(mpaps[[index]])
+    else if (length(index)>1) return(c(mpap=mpaps[[index[1]]],pcwp=pcwps[[index[1]]],pvr=pvrs[[index[1]]]))
+    else return(c(mpap=mpaps[[index]],pcwp=pcwps[[index]],pvr=pvrs[[index]]))
   } 
 }
 
-rhc_mpap <- as.numeric(apply(data.rhc,1,find.mpap))
+rhc.values <- data.frame(sapply(data.frame(t(apply(data.rhc,1,find.mpap)),stringsAsFactors=F),as.numeric))
 
-data1 <- subset(data,select=c(studyid,date_rhc_diagnostic,deadtransplant_alive,censor_death_date,age,gender,ethnicity,fvcpct,creatinine,hemoglobin,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap_,prednisone,immunesuppression))
+data1 <- subset(data,select=c(studyid,date_rhc_diagnostic,deadtransplant_alive,censor_death_date,age,gender,ethnicity,fvcpct,creatinine,hemoglobin,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap_,prednisone,immunesuppression,rhc_diagnostic))
 
-data1 <- cbind(data1,rhc_mpap)
+data1 <- cbind(data1,rhc.values)
 
 data1 <- transform(data1,
                    date_rhc_diagnostic = as.Date(date_rhc_diagnostic,format="%m/%d/%Y"),
@@ -62,8 +66,22 @@ data1 <- transform(data1,
 
 data1$weeks.in.study <- with(data1,as.numeric((censor_death_date-date_rhc_diagnostic)/7))
 
-cohort1 <- subset(data1, rhc_mpap>=25 & fvcpct<=70)
-cohort2 <- subset(data1, rhc_mpap>=25 & fvcpct>70)
+data1$cohort <- NULL
+data1$cohort[with(data1,which(mpap>=25 & fvcpct<70))] <- "PH / ILD"
+data1$cohort[with(data1,which(mpap>=25 & pcwp <= 15 & pvr >= 240 & fvcpct < 70))] <- "PAH / ILD"
+data1$cohort[with(data1,which(mpap>=25 & pcwp <= 15 & pvr >= 240 & fvcpct >= 70))] <- "PAH / No ILD"
+
+check <- function(df) {
+  return(with(df,rbind(mpap=summary(mpap),pcwp=summary(pcwp),pvr=summary(pvr),fvcpct=summary(fvcpct))))
+}
+by(data1,data1$cohort,check)
+
+save.image("data1.RData")
+
+
+
+three.cohorts <- with(data1,split(data1,cohort))
+
 
 surv1 <- with(cohort1,Surv(weeks.in.study,censor))
 surv2 <- with(cohort2,Surv(weeks.in.study,censor))
@@ -75,7 +93,7 @@ coxPHuniv <- function(varname,cohort,surv) {
   x <- cohort[[pmatch(varname,names(cohort))]]
   cm <- coxph(surv~x,method="breslow")
   cm.r <- round(summary(cm)$coefficients,4)
-  if (length(levels(x))>1)
+    if (length(levels(x))>1)
     return(rbind(c(paste("<b>",varname,"</b>",sep=""),summary(cm)$n,rep("",5)),cbind(paste("&#160;&#160;&#160;",levels(x)[-1],sep=""),rep("",length(levels(x))-1),cm.r)))
   else 
     return(c(paste("<b>",varname,"</b>",sep=""),summary(cm)$n,cm.r))  

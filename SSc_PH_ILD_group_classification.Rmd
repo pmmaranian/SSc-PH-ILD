@@ -1,0 +1,25 @@
+# Frequency table of cohort (Paul) vs.  rhc_diagnostic (Liz)  
+```{r, warning=FALSE}
+library(xtable)
+load("data1.RData")
+rownames(data1) <- 1:nrow(data1)
+with(data1,table(cohort,rhc_diagnostic,exclude=NULL))
+```
+
+
+# discrepancies
+
+```{r, echo=FALSE, results='asis'}
+data1$discrepancy <- "no"
+data1$discrepancy[with(data1,which(cohort=="PAH / ILD" & rhc_diagnostic==2))] <- "yes"
+data1$discrepancy[with(data1,which(cohort=="PH / ILD" & rhc_diagnostic==1))] <- "yes"
+data1$discrepancy[with(data1,which(is.na(cohort)))] <- "yes"
+
+data1.tbl <- subset(data1,select=c(studyid,mpap,pcwp,pvr,fvcpct,rhc_diagnostic,cohort,discrepancy))
+xdata1.tbl <- xtable(data1.tbl)
+digits(xdata1.tbl) <- c(0,0,0,0,0,0,0,0,0)
+align(xdata1.tbl) <- "rrrrrrrrr"
+print(xdata1.tbl,type="html")
+```
+
+
