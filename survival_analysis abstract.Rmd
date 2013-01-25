@@ -1,0 +1,170 @@
+SSc PH/ILD Project
+==================
+
+```{r, echo=FALSE, message=FALSE}
+library(survival)
+library(XLConnect)
+library(gridExtra)
+source("C:/PaulM/R source files/table functions markdown.R")
+
+
+data <- read.csv("SScPHILDProject_DATA_2013-01-24_1700.csv", fileEncoding="native.enc", stringsAsFactors=FALSE)
+
+excluded <- readWorksheetFromFile("excluded patients.xlsx",header=F,sheet="Sheet1",startRow=1,startCol=3,endCol=3,endRow=80)
+excluded$studyid <- with(excluded,as.integer(Col0))
+
+data <- data[!data$studyid %in% excluded$studyid,]
+
+rhc.date.indices <- grep("rhc_date",names(data))
+rhc.mpap.indices <- grep("rhc_mpap",names(data))
+rhc.pcwp.indices <- grep("rhc_pcwp",names(data))
+rhc.pvr.indices <- grep("rhc_pvr",names(data))
+
+data.rhc <- data.frame(date_rhc_diagnostic=data$date_rhc_diagnostic,data[c(rhc.date.indices,rhc.mpap.indices,rhc.pcwp.indices,rhc.pvr.indices)],stringsAsFactors=F)
+rownames(data.rhc) <- data$studyid
+
+find.mpap <- function(row) {
+  date <- row[1]
+  if (date=="" | is.na(date)) {
+    return(NA)
+  }
+  else {
+    dates <- row[grep("rhc_date",names(row))]
+    mpaps <- row[grep("rhc_mpap",names(row))]
+    pcwps <- row[grep("rhc_pcwp",names(row))]
+    pvrs <- row[grep("rhc_pvr",names(row))]
+    index <- grep(date,dates)
+    if (length(index)==0) return(NA)
+    else if (length(index)>1) return(c(mpap=mpaps[[index[1]]],pcwp=pcwps[[index[1]]],pvr=pvrs[[index[1]]]))
+    else return(c(mpap=mpaps[[index]],pcwp=pcwps[[index]],pvr=pvrs[[index]]))
+  } 
+}
+
+rhc.values <- data.frame(sapply(data.frame(t(apply(data.rhc,1,find.mpap)),stringsAsFactors=F),as.numeric))
+
+#data1 <- subset(data,select=c(studyid,date_rhc_diagnostic,deadtransplant_alive,censor_death_date,age,gender,ethnicity,fvcpct,creatinine,hemoglobin,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap_,prednisone,immunesuppression,rhc_diagnostic))
+
+data1 <- subset(data,select=c(studyid,date_rhc_diagnostic,deadtransplant_alive,censor_death_date,gender,ethnicity,fvcpct,creatinine,hemoglobin,dm,htn,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression,rhc_diagnostic,dob,ht,wt,ssc_don))
+
+
+data1 <- cbind(data1,rhc.values)
+
+data1 <- transform(data1,
+                   dob = as.Date(dob,format="%m/%d/%Y"),
+                   ssc_don = as.Date(ssc_don,format="%m/%d/%Y"),
+                   date_rhc_diagnostic = as.Date(date_rhc_diagnostic,format="%m/%d/%Y"),
+                   dead.transplant_alive = factor(deadtransplant_alive,levels=1:2,labels=c("dead/transplant","alive")),
+                   censor = ifelse(deadtransplant_alive==1,1,0),
+                   censor_death_date = as.Date(censor_death_date,format="%m/%d/%Y"),
+                   gender = factor(gender,levels=c(1,2),labels=c("F","M")),
+                   ethnicity = factor(ethnicity,levels=1:5,labels=c("Caucasian","African-American","Hispanic","Asian","Other")),
+                   cad = factor(cad,levels=1:2,labels=c("Yes","No")),
+                   smoke_current = factor(smoke_current,levels=1:2,labels=c("Yes","No")),
+                   ssc_type = factor(ssc_type,levels=1:2,labels=c("limited","diffuse")),
+                   overlap = factor(overlap,levels=1:2,labels=c("Yes","No")),
+                   prednisone = factor(prednisone,levels=1:2,labels=c("Yes","No")),
+                   immunesuppression = factor(immunesuppression,levels=1:2,labels=c("Yes","No")),
+                   dm = factor(dm,levels=1:2,labels=c("Yes","No")),
+                   htn = factor(htn,levels=1:2,labels=c("Yes","No")),
+                   creatinine2 = factor(creatinine>2,levels=c(FALSE,TRUE),labels=c("&le;2",">2")),
+                   hemoglobin2 = factor(hemoglobin<=11,levels=c(FALSE,TRUE),labels=c(">11","&le;11"))
+                   )
+
+data1 <- transform(data1,
+                   age = as.numeric((date_rhc_diagnostic - dob)/365.25),
+                   bmi = 10000*wt/ht^2,
+                   ssc_duration = as.numeric((date_rhc_diagnostic - ssc_don)/365.25)
+                   )
+
+data1$weeks.in.study <- with(data1,as.numeric((censor_death_date-date_rhc_diagnostic)/7))
+data1$months.in.study <- with(data1,as.numeric((censor_death_date-date_rhc_diagnostic)/(365/12)))
+
+data1$cohort <- NULL
+data1$cohort[with(data1,which(mpap>=25 & pcwp <= 15 & pvr >= 240 & fvcpct < 70))] <- "PAH / ILD"
+data1$cohort[with(data1,which(mpap>=25 & pcwp <= 15 & pvr >= 240 & fvcpct >= 70))] <- "PAH / No ILD"
+
+check <- function(df) {
+  return(with(df,rbind(mpap=summary(mpap),pcwp=summary(pcwp),pvr=summary(pvr),fvcpct=summary(fvcpct))))
+}
+by(data1,data1$cohort,check)
+
+save.image("data1.RData")
+
+cohorts <- with(data1,split(data1,cohort))
+
+surv.func <- function(ds) {
+  return(with(ds,Surv(months.in.study,censor)))
+}
+survs <- lapply(cohorts,surv.func)
+
+covariates <- split(subset(data1,select=c(age,gender,ethnicity,fvcpct,mpap,creatinine,creatinine2,hemoglobin,hemoglobin2,dm,htn,bmi,cad,smoke_current,smoke_packyears,ssc_type,ssc_duration,overlap,prednisone,immunesuppression)),data1$cohort)
+
+coxPHuniv <- function(varname,cohort,surv) {
+  x <- cohort[[pmatch(varname,names(cohort))]]
+  cm <- coxph(surv~x,method="breslow")
+  cm.r <- round(summary(cm)$coefficients,4)
+    if (length(levels(x))>1)
+    return(rbind(c(paste("<b>",varname,"</b>",sep=""),summary(cm)$n,rep("",5)),cbind(paste("&#160;&#160;&#160;",levels(x)[-1],sep=""),rep("",length(levels(x))-1),cm.r)))
+  else 
+    return(c(paste("<b>",varname,"</b>",sep=""),summary(cm)$n,cm.r))  
+}
+
+covariate.namesL <- as.list(names(covariates[[1]]))
+names(covariate.namesL) <- names(covariates[[1]])
+```
+
+
+Descriptive Table 
+-----------------
+
+<table border="1">
+<tr> <th> </th> <th colspan="2"> PAH / ILD </th> <th colspan="2"> PAH / No ILD </th>
+<TR> <TH>  </TH> <TH> Total </TH> <TH> mean (SD) / N (%) </TH> <TH> Total </TH> <TH> mean (SD) / N (%) </TH> <TH>p-value</TH> </TR>
+```{r, results='asis', echo=FALSE, warning=FALSE}
+desc.table <- do.call(rbind,lapply(covariate.namesL,maketable,data1,"cohort"))
+xdesc.table <- xtable(desc.table)
+align(xdesc.table) <- "llccccr" 
+print(xdesc.table,type="html",include.rownames=F,sanitize.text.function=function(x){x},include.colnames=F,only.contents=T)
+```
+</table>
+
+
+
+Kaplan-Meier estimate with 95% pointwise confidence bounds
+---------------------------------------------
+```{r, fig.width=12, echo=FALSE}
+par(mfrow=c(1,2))
+plot(survfit(survs[[1]]~1),xlab="months",ylab="survival probability",main="PH / ILD",xlim=c(0,96),axes=F)
+box()
+axis(1,at=seq(0,96,by=12))
+axis(2,at=seq(0,1,by=.2))
+plot(survfit(survs[[2]]~1),xlab="months",ylab="survival probability",main="PH / No ILD",xlim=c(0,96),axes=F)
+box()
+axis(1,at=seq(0,96,by=12))
+axis(2,at=seq(0,1,by=.2))
+
+fit <- survfit(with(data1,Surv(months.in.study,censor)~cohort))
+summary(fit)
+```
+
+
+Univariate Cox-PH analyses
+---------------------------
+
+<table>
+<tr> <th></th> <th colspan="6">PH / ILD</th> <th></th> <th colspan="6">PH / No ILD</th> </tr>
+```{r, results='asis', echo=FALSE, warning=FALSE}
+univariate.tbl1 <- do.call(rbind,lapply(covariate.namesL,coxPHuniv,cohorts[[1]],survs[[1]]))
+colnames(univariate.tbl1)[c(1,2)] <- c("","N")
+
+univariate.tbl2 <- do.call(rbind,lapply(covariate.namesL,coxPHuniv,cohorts[[2]],survs[[2]]))
+colnames(univariate.tbl2)[c(1,2)] <- c("","N")
+
+xunivariate.tbl <- xtable(cbind(univariate.tbl1,univariate.tbl2))
+colnames(xunivariate.tbl)[c(1,8)] <- c("","")
+
+print(xunivariate.tbl,type="html",sanitize.text.function=function(x){x},include.rownames=F,only.contents=T)
+```
+</tr>
+</table>
+
